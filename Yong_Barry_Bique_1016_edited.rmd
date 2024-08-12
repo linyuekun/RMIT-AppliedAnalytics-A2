@@ -1,0 +1,255 @@
+---
+title: "MATH1324 Introduction to Statistics Assignment 2"
+subtitle: Subtitle Comes Here
+author: "Sukhum Boondecharak s3940976 Yong Pui Tung s3934929 Yan Hok Yin s3952322"
+date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
+output:
+  powerpoint_presentation
+---
+
+```{r setup, include=FALSE}
+# Use this chunk to quietly load your packages
+knitr::opts_chunk$set(
+	fig.align = "center",
+	message = FALSE,
+	warning = FALSE
+)
+# Packages loaded in this chunk will not appear in the presentation. 
+library(ggplot2)
+library(dplyr)
+library(knitr)
+library(readr)
+library(car)
+library(tidyr)
+```
+
+# RPubs link information
+
+- It is not necessary (That is, it is optional and not compulsory) but if you like you can publish your presentation to RPubs (see [here](https://astral-theory-157510.appspot.com/secured/RBootcamp_Course_04.html#creating_an_r_markdown_document_in_r_studio)) and add this link to your presentation here.
+
+- Rpubs link comes here: www.........
+
+- This online version of the presentation will be used for marking. Failure to add your link will delay your feedback and risk late penalties.
+
+# Introduction
+
+The gender pay gap is not uncommon globally and the magnitude of gender-based disparities varies across countries. According to the Global Gender Gap Report 2018 published by the World Economic Forum, the regional average gap of European countries ranks ahead of the global weighted average. Meanwhile, Germany is ranked 14th out of 149 countries in the Global Gender Gap Index. In this presentation, we would like to find out if males and females among the IT professionals have different average annual salaries in the EU region, with a major focus in Germany.
+
+# Method
+
+Our problem statement driving the investigation is as follows:
+
+**Problem Statement: Does gender have an impact on annual salary in the European information technology (IT) sector?**
+
+To answer the question, we used the two-sample t-test, also known as independent samples t-test. It was frequently used to evaluate the difference between two population means, such as males vs females. It was used to test if there was a significant difference between the mean annual salary of males and females in the European information technology (IT) sector. 
+
+# Data
+
+The data was obtained from [Kaggle] (https://www.kaggle.com/datasets/parulpandey/2020-it-salary-survey-for-eu-region), titled as "IT Salary Survey for EU Region" (2018-2020). The data was published by Parul Pandey. The data was gathered through anonymous salary surveys that had been conducted among IT professionals in Europe, with a major focus in cities in Germany, such as Berlin, Frankfurt, and Hamburg since 2015. We had decided to use the data that was released in 2018, the first year that the data was available for public review. We picked the first-year data because it was the most pertinent to our research. The statistics after 2018 were the ones that were utilized to monitor the trend of pay rise, which did not match with our studies.
+
+## Import the Data
+```{r}
+# Import the data
+IT_Salary_Survey_EU_2018 <- read_csv("IT_Salary_Survey_EU_2018.csv")
+head(IT_Salary_Survey_EU_2018) -> head_table
+knitr::kable(head_table)
+```
+
+------
+## Data Structure
+The data set (IT_Salary_Survey_EU_2018) contained 14 variables and 765 observations.
+The structure of the variables were listed below:
+
+```{r}
+str(IT_Salary_Survey_EU_2018)
+```
+
+# Data Cont.
+## Tidy and Manipulate
+
+"Gender" and "Current Salary" were selected from column 3 and 8 as we were investigating males' and females' annual salaries by performing the two-sample t-test. We stored the chosen variables in a new data frame called "income". For easier understanding, we renamed the variable "Current Salary" to "Annual_Salary".
+
+
+```{r}
+
+#Select and Tidy variables
+income <- IT_Salary_Survey_EU_2018 %>% select(c(3,8))
+colnames(income)[2] <- "Annual_Salary"
+head(income) -> income_table
+knitr::kable(income_table)
+
+```
+
+# Descriptive Statistics and Visualisation
+
+We first used the colSums and is.na function to determine the number of missing values in the data frame income. We found that there was 14 and 15 NA value in Gender and Annual_Salary columns respectively.
+
+```{r}
+
+# Determine the number of NA value
+colSums(is.na(income))
+
+```
+
+Thus, the second data frame "income2" was created to eliminate missing values in the "Gender" column. When doing the two-sample t-test, we only needed the data that included "M" or "F" in the "Gender" column and excluded any missing values. The values "M" and "F" were converted into factor variables and labelled as "Male" and "Female" for easier understanding.
+
+```{r}
+income2 <- income %>% filter(Gender == "M" | Gender == "F")
+income2$Gender <- factor(income2$Gender, levels = c("M", "F"), labels=c("Male", "Female"))
+head(income2)
+```
+
+# Decsriptive Statistics Cont.
+The descriptive statistics for "income2" were displayed below, grouped by gender (Gender). The measurements of central tendency and variation were displayed in the summary statistics. The average value for the data collection could be expressed using mean, which was the measure of central tendency. Mean considered all values and it was sensitive to all values in the data. Standard deviation was also taken into account of every value in the data set. It provided a more accurate measure of variability. Standard deviation was a measure of variation from the mean on average. The mean annual salary of males was 70144.54 and the standard deviation was 21236.97. They were both higher than the mean (57272.90) and standard deviation (17474.38) of the mean annual salary of females.
+
+<!-- The data may be divided into different percentages, with the median being 50% of the data and Q1 representing 25%, Q3 representing 75%. The median is a measurement of central tendency and splits an ordered data set in half. In the box plots diagram, the data from Q1 and Q3 may be used to provide more insightful results. -->
+
+```{r}
+
+# Calculate and report the sample mean and standard deviation by group
+income2 %>% group_by(Gender) %>% summarise(Min = min(Annual_Salary,na.rm = TRUE),
+                                           Q1 = quantile(Annual_Salary,probs = .25, na.rm = TRUE),
+                                           Median = median(Annual_Salary, na.rm = TRUE),
+                                           Q3 = quantile(Annual_Salary,probs = .75, na.rm = TRUE),
+                                           Max = max(Annual_Salary,na.rm = TRUE),
+                                           Mean = mean(Annual_Salary, na.rm = TRUE),
+                                           SD = sd(Annual_Salary, na.rm = TRUE),
+                                           n = n(),
+                                           Missing = sum(is.na(Annual_Salary))) -> summary_table
+
+knitr::kable(summary_table)
+
+```
+
+# Boxplot
+In order to visualize the outliers for both groups (males and females), we casted box plots to compare the differences between the two groups.
+
+In explanatory data analysis in descriptive statistics, a box plot is a particular style of chart that is typically applied. Through the visual representation of the data quartiles (or percentiles), averages, and skewness, box plots illustrated the distribution of numerical data and its outliers. Box plots displayed the least score, first (lower) quartile, median, third (upper), and maximum scores for a collection of data.
+
+From the plot, we could tell that both groups had similar spread (variance) based on the box limits, also known as Interquartile Range, which indicated the range of the central 50% of the data. It indicated how spread out the middle half of the data was. Both distribution were approximately symmetric, as both half-boxes were almost the same length. The central line marked the median value. Male had a higher median than female. 
+
+Both groups included potential outliers. The annual salary for outliers 1.5 IQR below the first quartile were fairly similar for both men and women. However, there were more outliers 1.5 IQR above the third quartile for male than female. Also, the annual salary of outliers for male was higher than female in general.
+
+```{r}
+# Visualise the sample data using a Box-plot by group
+boxplot(Annual_Salary ~ Gender, data=income2)
+
+```
+
+# Hypothesis Testing
+
+We selected a two-sample t-test because we could compare the mean of a quantitative variable "annual salary" of two independent groups. The two-sample t-test was used to determine whether there were any differences between two population means e.g. males vs females based on samples from each population. We used the standard 95% confidence interval (CI).
+
+The two sample t-test assumed that the populations being compared are independent of each other, data for both populations had equal variance and for small samples, that the data for both populations were normally distributed. These assumptions must be checked prior to interpreting the results of the two-sample t-test. We began by testing the assumption of normality.
+
+```{r}
+# Filter data by gender
+df_male18 <- income2 %>% filter(Gender == "Male")
+df_female18 <- income2 %>% filter(Gender == "Female")
+```
+
+## Assumption 1: Both samples are normally distributed 
+
+We could visually check normality using Q-Q plots from "car" package. Q-Q plots visualized the data distribution by comparing it to what we would expect to see assuming the data were normally distributed in the population. If the data were normally distributed in the population, the data points would fall close to the diagonal line. However, due to sampling error, the data points would not always fall exactly on the diagonal line. We had to check for any obvious departures from normality. Non-normality would be characterized by any strange S-shaped or other non-linear trends.
+
+```{r}
+# QQ Plot
+df_male18$Annual_Salary %>% qqPlot(dist="norm")
+```
+
+```{r}
+df_female18$Annual_Salary %>% qqPlot(dist="norm")
+```
+For both female and male data, there were points falling outside the tails of the distribution. They were symmetric with fat tails.
+
+Fortunately, as the sample size in both groups (n = 643 for males, n = 104 for females) were greater than 30, we could use Central Limit Theorem to assume normality. Sampling distribution would approximate a normal distribution.
+
+## Assumption 2: Homogeneity of variances
+
+The population variance of annual salary between males and females could be compared using the leveneTest() function. 
+
+The Levene’s test had the following statistical hypotheses:
+$$H_0: \sigma^2_1 = \sigma^2_2 $$ 
+$$H_1: \sigma^2_1 \ne \sigma^2_2 $$
+Here $σ^2_1$ and $σ^2_2$ referred to the population variance of group 1 and 2 respectively. The Levene’s test reported a p-value that was compared to the standard 0.05 significance level.
+
+If p > 0.05, we failed to reject the Levene's test and the null hypothesis, thus the population variances could be assumed to be homogeneous. We could apply the two-sample t-test. If p < 0.05, we needed to reject null hypothesis and the Levene’s test was statistically significant. Then we needed to apply the two-sample t-test with unequal variance. The type of two-sample t-test that would be used depended on the assumption of equal variance.
+
+```{r}
+leveneTest(Annual_Salary ~ Gender, data = income2)
+```
+
+The result of the Levene's test of equal variance for annual salary between males and females had a p-value of 0.175, which was > 0.05, therefore we failed to reject $H_0$ null hypothesis. The two sample t-test with equal variance could therefore be applied. We were safe to assume equal variance. Now we could apply the two-sample t-test.
+
+## Two-sample t-test
+
+We performed a two-sample t-test assuming equal variance and a two-sided hypothesis test. We used the t.test() function. As we were safe to assume equal variance based on the Levene's test, we used the var.equal = TRUE option to perform the equal variance and the alternative = "two-sided" option to specify a two-tailed test. R printed the results of the two-sample t-test as follows.
+
+### Report the test statistic
+
+```{r}
+# Compute t-test
+t.test(Annual_Salary ~ Gender, 
+       data = income2, 
+       var.equal = TRUE, 
+       alternative = "two.sided")
+
+# Print the p-value
+t.test(Annual_Salary ~ Gender, 
+       data = income2, 
+       var.equal = TRUE, 
+       alternative = "two.sided")$p.value
+
+# Print the confidence interval
+t.test(Annual_Salary ~ Gender, 
+       data = income2, 
+       var.equal = TRUE, 
+       alternative = "two.sided")$conf.int
+```
+
+### State the Null and Alternate hypothesis
+
+The two-sample t-test had the following statistical hypotheses:
+
+$$H_0: \mu_1 - \mu_2  = 0 $$
+
+$$H_A: \mu_1 - \mu_2  \ne 0 $$
+$\mu_1$ and $\mu_2$ referred to the population means of males and females respectively. The null hypothesis was that the difference between the two independent population means is 0. The difference between males and females estimated by the sample was 70144.54 - 57272.90 = 12871.64.
+
+The test statistic t = 5.8671 was calculated as:
+
+$$t = \frac{\bar x_1-\bar x_2}{\sqrt{\frac{s^2_p}{n_1}+\frac{s^2_p}{n_2}}} $$
+
+where $s^2_p$ is the pooled variance (assuming equal variance):
+
+$$ s^2_p = \frac{(n_1-1)s^2_1 + (n_2-1)s^2_2}{n_1+n_2-2}$$
+The t-statistic is compared to a two-tailed t-critical value t∗ with df:
+
+$$ df = n_1 + n_2 -2 $$
+Assuming $\alpha$=0.05 and a two-tailed test, we find t∗ using the R function:
+
+```{r}
+qt(p=0.975, df=643+104-2)
+```
+
+As the test statistic t from the two-sample t-test assuming equal variance was t= 5.87, which was more extreme than 1.96, we rejected $H_0$. According to the critical value method, there was a statistically significant difference between male and female means.
+
+The p-value of the two-sample t-test showed us the probability of observing a sample difference between the means of 12871.64, or one more extreme, assuming the difference was zero in the population, which means $H_0$ is true in this case. 
+
+The two-tailed p-value was reported to be p=6.671e-09. According to the p-value method, as p=6.671e-09 is less than $\alpha$ =0.05, we were able to reject $H_0$. It also inferred that there was a statistically significant difference between the means.
+
+95% CI was reported as [8564.73 17178.55]. As this interval did not capture $H_0$, we rejected it. There was a significant difference between the means.
+
+# Discussion
+
+A two-sample independent t-test was used to test for a significant difference between the mean annual salary of males and females in European IT sector. While the annual salary for both males and females exhibited evidence of non-normality upon inspection of the normal Q-Q plot, with both samples having size greater than 30, the central limit theorem ensured that the t-test could be applied. The Levene’s test of homogeneity of variance indicated that equal variance could be assumed. The results of the two-sample t-test assuming equal variance found a statistically significant difference between the mean annual salary of males and females, t(df=745)= 5.87, p=6.671e-09, 95% CI for the difference in means [8564.73 17178.55]. The results of the investigation suggested that males have significantly higher average annual salary than females in the European Information Technology (IT) sector. It showed that gender had an impact on annual salary.
+
+The accuracy of our hypotheses tests could be improved by increasing sampling size for both groups. If Standard Deviation remains the same, a bigger sample size N will decrease the Standard Error. Due to the limitation of accessibility of data, we could only look for public data sets for this report.
+
+For limitations, the data could not capture if the respondents have any other income incentives such as overtime earnings, bonuses, double pay. We could only compare their base annual salary. Moreover, the comparison would be more meaningful if respondents are in similarly comparable situations considering all aspects linked to their jobs, such as the nature of their work, education level, working experience, company size, etc.
+
+# References
+
+Pandey, P. (2021, January 19). It salary survey for EU Region(2018). Kaggle. Retrieved October 12, 2022, from https://www.kaggle.com/datasets/parulpandey/2020-it-salary-survey-for-eu-region
+
+https://www3.weforum.org/docs/WEF_GGGR_2018.pdf
